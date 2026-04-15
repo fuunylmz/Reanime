@@ -30,7 +30,9 @@ export async function searchTMDBMultiple(
     }
     const data = await response.json();
     if (data.results && data.results.length > 0) {
-      return data.results.slice(0, maxResults).map((r: any) => ({
+      return data.results
+        .filter((r: any) => r.media_type === "tv" || r.media_type === "movie")
+        .slice(0, maxResults).map((r: any) => ({
         id: r.id,
         name: r.name || r.title,
         original_name: r.original_name || r.original_title,

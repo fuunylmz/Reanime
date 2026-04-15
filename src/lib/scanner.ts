@@ -9,10 +9,16 @@ export interface LLMConfig {
   baseURL: string;
   model: string;
 }
+export interface DirConfig {
+  targetDir: string;
+  targetDirAnime?: string;
+  targetDirTV?: string;
+  targetDirMovie?: string;
+}
 
 export async function processFile(
   originalFilePath: string,
-  targetBaseDir: string,
+  dirConfig: DirConfig,
   parsed: AIParsedMetadata,
   tmdbKey: string,
   taskId: string,
@@ -82,6 +88,13 @@ export async function processFile(
 
   updateTask(taskId, { currentStep: "构建挂载节点", progress: 70 });
 
+  // ====== 在 TMDB 校验之后再决定目标目录（因为 category 可能已经被纠正） ======
+  let targetBaseDir = dirConfig.targetDir;
+  if (parsed.category === "anime" && dirConfig.targetDirAnime) targetBaseDir = dirConfig.targetDirAnime;
+  if (parsed.category === "tv" && dirConfig.targetDirTV) targetBaseDir = dirConfig.targetDirTV;
+  if (parsed.category === "movie" && dirConfig.targetDirMovie) targetBaseDir = dirConfig.targetDirMovie;
+  addLog(taskId, `分类结果: ${parsed.category} → 目标根目录: ${targetBaseDir}`, "info");
+
   // 2. Construct Emby-friendly Path
   const year = tmdbResult.first_air_date ? tmdbResult.first_air_date.substring(0, 4) : "Unknown";
   const showFolderName = `${tmdbResult.name} (${year})`;
@@ -147,7 +160,9 @@ export async function processFile(
         const safeExt = ext.replace('.', '\\.');
         const regexStr = `(\\.[a-zA-Z0-9_-]+)?${safeExt}$`;
         const retryFilename = targetFilename.replace(new RegExp(regexStr, 'i'), `_${counter}$&`);
-        targetPath = path.join(targetBaseDir, showFolderName, seasonFolderName, retryFilename);
+        targetPath = parsed.category === "movie" 
+          ? path.join(targetBaseDir, showFolderName, retryFilename)
+          : path.join(targetBaseDir, showFolderName, seasonFolderName, retryFilename);
 
         try {
           await linkOrCopy(originalFilePath, targetPath, true);

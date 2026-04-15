@@ -219,16 +219,16 @@ export async function POST(request: Request) {
                    continue;
                 }
 
-                addLog(taskId, `LLM 推理剥离成功：精准确认 [剧名="${parsed.originalName}", 第${parsed.season}季-第${parsed.episode}集]`, "success");
-
-                let finalTargetDir = config.targetDir;
-                if (parsed.category === "anime" && config.targetDirAnime) finalTargetDir = config.targetDirAnime;
-                if (parsed.category === "tv" && config.targetDirTV) finalTargetDir = config.targetDirTV;
-                if (parsed.category === "movie" && config.targetDirMovie) finalTargetDir = config.targetDirMovie;
+                addLog(taskId, `LLM 推理剥离成功：精准确认 [剧名="${parsed.originalName}", 第${parsed.season}季-第${parsed.episode}集, 类型=${parsed.category}]`, "success");
 
                 const result = await processFile(
                   filePath,
-                  finalTargetDir,
+                  {
+                    targetDir: config.targetDir,
+                    targetDirAnime: config.targetDirAnime || undefined,
+                    targetDirTV: config.targetDirTV || undefined,
+                    targetDirMovie: config.targetDirMovie || undefined,
+                  },
                   parsed,
                   config.tmdbKey,
                   taskId,

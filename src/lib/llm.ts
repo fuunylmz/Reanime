@@ -253,7 +253,7 @@ export async function parseFilenamesBatchWithAI(
         { role: "system", content: PARSE_SYSTEM_PROMPT },
         { role: "user", content: JSON.stringify(inputData) }
       ],
-      temperature: 1,
+      temperature: 0.1,
       max_tokens: 16384,
       stream: true,
     });
@@ -289,7 +289,7 @@ export async function parseFilenamesBatchWithAI(
             season: item.season,
             episode: item.episode,
             isMainEpisode: item.isMainEpisode,
-            category: item.category || "anime", // 降级为 anime
+            category: item.category || (item.episode && /^\d+$/.test(item.episode) ? "anime" : "movie"),
             reasoning: item.reasoning || undefined
           };
         }
