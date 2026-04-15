@@ -21,7 +21,7 @@ Reanime 是一个现代化的、完全自动化的媒体整理与刮削工具。
 - 一个有效的 LLM API Keys (例如官方 OpenAI / 国内的兼容服务商接口)
 - 申请好的 TMDB API Key
 
-### 安装与运行
+### 安装与运行 (开发环境)
 
 1. **克隆项目到本地**
    ```bash
@@ -46,7 +46,26 @@ Reanime 是一个现代化的、完全自动化的媒体整理与刮削工具。
    npm run dev
    ```
 
-5. **打开控制台**
+### 生产环境部署 (推荐使用 PM2)
+
+若要在服务器长期挂机稳定运行，建议使用 PM2 守护进程：
+
+1. 全局安装 pm2 (如已安装可跳过)
+   ```bash
+   npm install -g pm2
+   ```
+2. 构建生产优化版本
+   ```bash
+   npm run build
+   ```
+3. 一键启动守护进程
+   ```bash
+   pm2 start ecosystem.config.js
+   ```
+
+*(如需查看后台运行日志，输入 `pm2 logs reanime`；如需开机自启，输入 `pm2 startup` 后按提示操作。)*
+
+### 快速配置
    - 在浏览器中访问：`http://localhost:3000`
    - 首先前往系统左侧 **[系统设置]** 配置你的：
      - `TMDB API Key`
