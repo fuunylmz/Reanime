@@ -1,65 +1,191 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { PlayCircle, ShieldCheck, AlertCircle, Folder, CornerLeftUp, Search } from "lucide-react";
+
+export default function Dashboard() {
+  const [scanning, setScanning] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+
+  const [currentPath, setCurrentPath] = useState("C:\\");
+  const [inputPath, setInputPath] = useState("");
+  const [folders, setFolders] = useState<string[]>([]);
+  const [loadingFolders, setLoadingFolders] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings").then(res => res.json()).then(data => {
+       if (data.sourceDir) {
+          fetchFolders(data.sourceDir);
+       } else {
+          fetchFolders("C:\\");
+       }
+    });
+  }, []);
+
+  const fetchFolders = async (dirToFetch: string) => {
+    setLoadingFolders(true);
+    try {
+        const res = await fetch(`/api/fs?path=${encodeURIComponent(dirToFetch)}`);
+        const data = await res.json();
+        if (data.success) {
+            setCurrentPath(data.currentPath);
+            setInputPath(data.currentPath);
+            setFolders(data.directories);
+        } else {
+            toast.error(data.error || "读取目录失败");
+        }
+    } catch {
+        toast.error("读取目录发生错误");
+    } finally {
+        setLoadingFolders(false);
+    }
+  }
+
+  const navigateUp = () => {
+      const parts = currentPath.replace(/\/$/, "").split(/[/\\]/);
+      parts.pop();
+      let parent = parts.join("\\");
+      if (parent.endsWith(":")) parent += "\\"; 
+      if (!parent) parent = "C:\\";
+      fetchFolders(parent);
+  }
+
+  const navigateTo = (folderName: string) => {
+      const sep = currentPath.endsWith("\\") || currentPath.endsWith("/") ? "" : "\\";
+      fetchFolders(currentPath + sep + folderName);
+  }
+
+  const handleScan = async (useCustom: boolean) => {
+    setScanning(true);
+    setResults([]);
+    try {
+      const reqBody = useCustom ? { customDir: currentPath } : {};
+      const res = await fetch("/api/scan", { 
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reqBody) 
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || "已经开始前往后台逐个执行，你可以去处理队列查看了。");
+      } else {
+        toast.error(data.error || "触发扫描时出错");
+      }
+    } catch {
+      toast.error("触发扫描时发生网络错误");
+    } finally {
+      setScanning(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">控制面板</h2>
+        <p className="text-zinc-400 mt-1">Reanime 自动化处理引擎运行概况与局部扫描控制。</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Global Trigger */}
+        <Card className="bg-zinc-900 border-zinc-800 flex flex-col">
+          <CardHeader>
+            <CardTitle>默认扫描 (全局)</CardTitle>
+            <CardDescription>扫描系统设置中配置的默认“监控源目录”。</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-1 items-end pb-6">
+            <Button onClick={() => handleScan(false)} disabled={scanning} size="lg" className="w-full bg-indigo-600 hover:bg-indigo-700 h-16 text-lg font-medium shadow-xl shadow-indigo-900/20">
+              <PlayCircle className="mr-3" size={24} /> {scanning ? "正在读取并扫描目录中..." : "立刻扫描系统默认源"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Directory Browser */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle>自定义目录处理</CardTitle>
+            <CardDescription>在服务器资源库中直接浏览并选取指定的文件夹进行解析转移。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={navigateUp} className="bg-zinc-950 border-zinc-800 shrink-0">
+                    <CornerLeftUp size={18} />
+                </Button>
+                <div className="flex-1 flex gap-2">
+                   <Input 
+                        value={inputPath} 
+                        onChange={(e) => setInputPath(e.target.value)}
+                        className="bg-zinc-950 border-zinc-800 font-mono text-sm" 
+                        onKeyDown={(e) => { if (e.key === 'Enter') fetchFolders(inputPath); }}
+                   />
+                   <Button variant="secondary" onClick={() => fetchFolders(inputPath)} className="shrink-0 bg-zinc-800 hover:bg-zinc-700">
+                       <Search size={16} />
+                   </Button>
+                </div>
+             </div>
+
+             <div className="h-48 overflow-y-auto border border-zinc-800/50 rounded-lg p-2 bg-zinc-950/30">
+                 {loadingFolders ? (
+                     <p className="p-4 text-sm text-zinc-500 text-center flex items-center justify-center h-full">读取中...</p>
+                 ) : folders.length === 0 ? (
+                     <p className="p-4 text-sm text-zinc-500 text-center flex items-center justify-center h-full">此目录下没有任何子文件夹。</p>
+                 ) : (
+                     <ul className="space-y-1">
+                         {folders.map(f => (
+                             <li key={f}>
+                                 <button 
+                                     onClick={() => navigateTo(f)}
+                                     className="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-800/80 rounded transition-colors text-left text-sm font-medium text-zinc-300 hover:text-white"
+                                 >
+                                     <Folder className="text-blue-400" size={16} fill="currentColor" fillOpacity={0.2} /> {f}
+                                 </button>
+                             </li>
+                         ))}
+                     </ul>
+                 )}
+             </div>
+
+             <Button onClick={() => handleScan(true)} disabled={scanning} className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/20">
+                 处理左上文本框中指定的路径
+             </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Results Header */}
+      {results.length > 0 && (
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle>本次运行结果</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {results.map((r, i) => (
+                <div key={i} className="flex items-start gap-4 p-4 rounded-lg bg-zinc-950/50 border border-zinc-800/50">
+                  {r.status === "SUCCESS" ? (
+                    <ShieldCheck className="text-emerald-500 mt-0.5 shrink-0" size={20} />
+                  ) : (
+                    <AlertCircle className="text-rose-500 mt-0.5 shrink-0" size={20} />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-zinc-200 truncate">{r.file}</p>
+                    {r.status === "SUCCESS" && r.target && (
+                       <p className="text-xs text-zinc-500 mt-1 font-mono break-all line-clamp-2">↳ {r.target}</p>
+                    )}
+                    {r.status === "FAILED" && (
+                       <p className="text-xs text-rose-400 mt-1 line-clamp-2">错误: {r.error}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
