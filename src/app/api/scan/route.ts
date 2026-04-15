@@ -49,8 +49,14 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const scanDir = body.customDir || config.sourceDir;
 
-    if (!scanDir || !config.targetDir || !config.openaiKey || !config.tmdbKey) {
-      return NextResponse.json({ success: false, error: "系统配置未完善或缺少扫描目录。" }, { status: 400 });
+    const missing = [];
+    if (!scanDir) missing.push("扫描根目录");
+    if (!config.targetDir) missing.push("目标总归档目录");
+    if (!config.openaiKey) missing.push("大模型 API Key");
+    if (!config.tmdbKey) missing.push("TMDB API Key");
+
+    if (missing.length > 0) {
+      return NextResponse.json({ success: false, error: `系统配置未完善，缺失核心配置项：${missing.join(', ')}。请前往系统设置补全。如果是文本框变成灰色且含有“例如：”的字样，那只是提示文字，你实际上还未填入该项！` }, { status: 400 });
     }
 
     // ====== 修复 #5: 并发锁检查 ======
