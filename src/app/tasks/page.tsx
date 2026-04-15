@@ -47,10 +47,7 @@ export default function TasksPage() {
   const groupedTasks = useMemo(() => {
     const groups: Record<string, any[]> = {};
     for (const t of tasks) {
-       const parts = t.fullPath.split(/[/\\]/);
-       parts.pop(); 
-       const folderName = parts.length > 0 ? parts.join("\\") : "根目录";
-       
+       const folderName = t.groupName || "系统任务";
        if (!groups[folderName]) groups[folderName] = [];
        groups[folderName].push(t);
     }

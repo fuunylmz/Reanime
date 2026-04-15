@@ -8,6 +8,7 @@ export interface TaskState {
   id: string;
   fileName: string;
   fullPath: string;
+  groupName?: string;
   status: "pending" | "processing" | "success" | "error";
   currentStep: string;
   progress: number;

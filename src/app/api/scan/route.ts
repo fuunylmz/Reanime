@@ -86,12 +86,29 @@ export async function POST(request: Request) {
           const existing = await prisma.processLog.findFirst({ where: { originalPath: filePath, status: "SUCCESS" } });
           if (existing) continue;
 
+          // 智能分组逻辑：尽最大可能按“源监控目录”的第一级子目录分组，从而不管内部有多少子文件夹（如 PV/Menu）都在一个组
+          let groupName = scanDir;
+          if (config.sourceDir) {
+             const relToGlobal = path.relative(config.sourceDir, filePath);
+             // 检查文件是否确实位于配置的 sourceDir 内
+             if (relToGlobal && !relToGlobal.startsWith('..') && !path.isAbsolute(relToGlobal)) {
+                const parts = relToGlobal.split(path.sep).filter(p => p && p !== '.');
+                if (parts.length > 0) {
+                   groupName = path.join(config.sourceDir, parts[0]);
+                }
+             } else {
+                // 如果扫的是游离在配置之外的其他盘，那为了不散架，直接强行按发起的独立扫描目录作为全局唯一的组
+                groupName = scanDir;
+             }
+          }
+
           const taskId = crypto.randomUUID();
           taskIds[filePath] = taskId;
           taskManager.set(taskId, {
              id: taskId,
              fileName: filename,
              fullPath: filePath,
+             groupName: groupName,
              status: "pending",
              currentStep: "已挂起至批次队列",
              progress: 5,
@@ -137,8 +154,9 @@ export async function POST(request: Request) {
               config.openaiModel,
               (newChunk, aggregated) => {
                  lastRawOutput = aggregated;
-                 for (const filePath of chunk) {
-                   updateTask(taskIds[filePath], { streamData: aggregated });
+                 // 仅将流数据展示在批次的第一个任务卡片上，防止 50 个文件同时闪烁巨大的重复 JSON 黑框
+                 if (chunk.length > 0) {
+                    updateTask(taskIds[chunk[0]], { streamData: aggregated });
                  }
               },
               chunkFolderHints

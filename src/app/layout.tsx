@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import Link from "next/link";
-import { Home, Settings, History, Activity } from "lucide-react";
+import { Home, Settings, History, Activity, Library } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,6 +36,9 @@ export default function RootLayout({
             </Link>
             <Link href="/tasks" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/80 transition-all text-zinc-400 hover:text-white font-medium text-sm">
               <Activity size={18} /> 处理队列
+            </Link>
+            <Link href="/library" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/80 transition-all text-zinc-400 hover:text-white font-medium text-sm">
+              <Library size={18} /> 媒体档案
             </Link>
             <Link href="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/80 transition-all text-zinc-400 hover:text-white font-medium text-sm">
               <Settings size={18} /> 系统设置
