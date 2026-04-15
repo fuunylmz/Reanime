@@ -208,7 +208,7 @@ export default function SettingsPage() {
               id="sourceDir" 
               className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
               value={config.sourceDir} onChange={e => setConfig({ ...config, sourceDir: e.target.value })}
-              placeholder="例如：C:\Downloads\PT" 
+              placeholder="例如：C:\Downloads 或 /volume1/downloads" 
             />
           </div>
           <div className="space-y-2">
@@ -217,7 +217,7 @@ export default function SettingsPage() {
               id="targetDir" 
               className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
               value={config.targetDir} onChange={e => setConfig({ ...config, targetDir: e.target.value })}
-              placeholder="例如：D:\EmbyMedia\Anime" 
+              placeholder="例如：D:\EmbyMedia\Anime 或 /volume1/media/anime" 
             />
             <div className="space-y-4 pt-4 border-t border-zinc-800">
               <h3 className="text-sm font-medium text-zinc-300">自动分类目标目录配置 (智能分发)</h3>
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                   id="targetDirAnime" 
                   className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
                   value={config.targetDirAnime || ""} onChange={e => setConfig({ ...config, targetDirAnime: e.target.value })}
-                  placeholder="例如：D:\EmbyMedia\Anime" 
+                  placeholder="例如：D:\EmbyMedia\Anime 或 /volume1/media/anime" 
                 />
               </div>
               <div className="space-y-2">
@@ -237,7 +237,7 @@ export default function SettingsPage() {
                   id="targetDirTV" 
                   className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
                   value={config.targetDirTV || ""} onChange={e => setConfig({ ...config, targetDirTV: e.target.value })}
-                  placeholder="例如：D:\EmbyMedia\TV" 
+                  placeholder="例如：D:\EmbyMedia\TV 或 /volume1/media/tv" 
                 />
               </div>
               <div className="space-y-2">
@@ -246,7 +246,7 @@ export default function SettingsPage() {
                   id="targetDirMovie" 
                   className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
                   value={config.targetDirMovie || ""} onChange={e => setConfig({ ...config, targetDirMovie: e.target.value })}
-                  placeholder="例如：D:\EmbyMedia\Movies" 
+                  placeholder="例如：D:\EmbyMedia\Movies 或 /volume1/media/movies" 
                 />
               </div>
             </div>

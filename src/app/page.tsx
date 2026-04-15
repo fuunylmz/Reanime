@@ -11,7 +11,7 @@ export default function Dashboard() {
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<any[]>([]);
 
-  const [currentPath, setCurrentPath] = useState("C:\\");
+  const [currentPath, setCurrentPath] = useState("");
   const [inputPath, setInputPath] = useState("");
   const [folders, setFolders] = useState<string[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -21,7 +21,7 @@ export default function Dashboard() {
        if (data.sourceDir) {
           fetchFolders(data.sourceDir);
        } else {
-          fetchFolders("C:\\");
+          fetchFolders("");
        }
     });
   }, []);
@@ -46,16 +46,29 @@ export default function Dashboard() {
   }
 
   const navigateUp = () => {
-      const parts = currentPath.replace(/\/$/, "").split(/[/\\]/);
+      const parts = currentPath.replace(/\/$/, "").replace(/\\$/, "").split(/[/\\]/);
       parts.pop();
-      let parent = parts.join("\\");
-      if (parent.endsWith(":")) parent += "\\"; 
-      if (!parent) parent = "C:\\";
-      fetchFolders(parent);
+      let parent = parts.join("/");
+      
+      // 处理 Windows 盘符根目录
+      if (parent.endsWith(":")) {
+         parent += "/"; 
+      }
+      
+      // 处理 Linux/Mac 根目录
+      if (currentPath.startsWith("/") && parent === "") {
+         parent = "/";
+      }
+
+      if (!parent) {
+          fetchFolders(""); // 只有彻底为空（最初始状态无记录）才由后端 fallback
+      } else {
+          fetchFolders(parent);
+      }
   }
 
   const navigateTo = (folderName: string) => {
-      const sep = currentPath.endsWith("\\") || currentPath.endsWith("/") ? "" : "\\";
+      const sep = currentPath.endsWith("\\") || currentPath.endsWith("/") ? "" : "/";
       fetchFolders(currentPath + sep + folderName);
   }
 
