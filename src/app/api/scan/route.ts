@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     const mediaFilePaths = await collectMediaFiles(scanDir);
 
     if (mediaFilePaths.length === 0) {
-       return NextResponse.json({ success: true, message: "此目录及其子目录内没有发现待处理的媒体文件。" });
+      return NextResponse.json({ success: true, message: "此目录及其子目录内没有发现待处理的媒体文件。" });
     }
 
     // 锁定扫描状态
@@ -112,8 +112,8 @@ export async function POST(request: Request) {
     }
 
     if (validFilesToProcess.length === 0) {
-       scanLockG.__scanLock = false;
-       return NextResponse.json({ success: true, message: "此目录下所有媒体文件均已处理过，无需重复操作。" });
+      scanLockG.__scanLock = false;
+      return NextResponse.json({ success: true, message: "此目录下所有媒体文件均已处理过，无需重复操作。" });
     }
 
     // ====== 按顶层子文件夹分组（一部番 = 一个处理单元） ======
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
     Promise.resolve().then(async () => {
       try {
         const taskIds: Record<string, string> = {};
-        const BATCH_SIZE = 50;
+        const BATCH_SIZE = 60;
 
         // 先为所有文件创建任务条目
         for (const [groupKey, files] of showGroupEntries) {
@@ -138,15 +138,15 @@ export async function POST(request: Request) {
             const taskId = crypto.randomUUID();
             taskIds[filePath] = taskId;
             taskManager.set(taskId, {
-               id: taskId,
-               fileName: filename,
-               fullPath: filePath,
-               groupName: groupPath,
-               status: "pending",
-               currentStep: "已挂起至批次队列",
-               progress: 5,
-               logs: [{ time: Date.now(), level: "info", message: "系统唤醒准备启动列阵" }],
-               startTime: Date.now()
+              id: taskId,
+              fileName: filename,
+              fullPath: filePath,
+              groupName: groupPath,
+              status: "pending",
+              currentStep: "已挂起至批次队列",
+              progress: 5,
+              logs: [{ time: Date.now(), level: "info", message: "系统唤醒准备启动列阵" }],
+              startTime: Date.now()
             });
           }
         }
@@ -168,10 +168,10 @@ export async function POST(request: Request) {
 
           // 标记当前番剧组所有文件进入处理状态
           for (const filePath of showFiles) {
-            updateTask(taskIds[filePath], { 
-              status: "processing", 
-              currentStep: `正在处理番组 [${showLabel}] (${showIdx + 1}/${totalShows})`, 
-              progress: 10 
+            updateTask(taskIds[filePath], {
+              status: "processing",
+              currentStep: `正在处理番组 [${showLabel}] (${showIdx + 1}/${totalShows})`,
+              progress: 10
             });
             addLog(taskIds[filePath], `📺 当前处理番组: "${showLabel}" (${showIdx + 1}/${totalShows}，本组共 ${showFiles.length} 个文件)`, "info");
           }
@@ -193,125 +193,125 @@ export async function POST(request: Request) {
               const relativePath = path.relative(scanDir, filePath);
               const parentParts = path.dirname(relativePath).split(path.sep).filter(p => p && p !== '.');
               chunkFolderHints.push(parentParts.join(' / '));
-              updateTask(taskIds[filePath], { 
-                status: "processing", 
-                currentStep: totalChunks > 1 
-                  ? `请求 LLM 推理中 [${showLabel}] 批次 ${chunkIdx}/${totalChunks}` 
-                  : `请求 LLM 推理中 [${showLabel}]`, 
-                progress: 20 
+              updateTask(taskIds[filePath], {
+                status: "processing",
+                currentStep: totalChunks > 1
+                  ? `请求 LLM 推理中 [${showLabel}] 批次 ${chunkIdx}/${totalChunks}`
+                  : `请求 LLM 推理中 [${showLabel}]`,
+                progress: 20
               });
               addLog(taskIds[filePath], `[分列调度] 已打包发送至大模型，正在等待远端文字特征解析...`, "info");
             }
 
             let lastRawOutput = "";
             const batchResults = await parseFilenamesBatchWithAI(
-               chunkBasenames,
-               config.openaiKey,
-               config.openaiBaseURL,
-               config.openaiModel,
-               (newChunk, aggregated) => {
-                  lastRawOutput = aggregated;
-                  if (chunk.length > 0) {
-                     updateTask(taskIds[chunk[0]], { streamData: aggregated });
-                  }
-               },
-               chunkFolderHints
+              chunkBasenames,
+              config.openaiKey,
+              config.openaiBaseURL,
+              config.openaiModel,
+              (newChunk, aggregated) => {
+                lastRawOutput = aggregated;
+                if (chunk.length > 0) {
+                  updateTask(taskIds[chunk[0]], { streamData: aggregated });
+                }
+              },
+              chunkFolderHints
             );
 
             // 清除流数据
             for (const filePath of chunk) {
-               updateTask(taskIds[filePath], { streamData: undefined });
+              updateTask(taskIds[filePath], { streamData: undefined });
             }
 
             if (!batchResults) {
-               for (const filePath of chunk) {
-                  updateTask(taskIds[filePath], { status: "error", currentStep: "大模型返回解析失败" });
-                  addLog(taskIds[filePath], "核心失败：批量 AI 解析返回了无法解析的格式", "error");
-                  if (lastRawOutput) {
-                    addLog(taskIds[filePath], `模型原始返回（前200字符）: ${lastRawOutput.substring(0, 200)}`, "error");
-                  } else {
-                    addLog(taskIds[filePath], "模型返回为空（可能是网络超时或 API 报错）", "error");
-                  }
-               }
-               continue;
+              for (const filePath of chunk) {
+                updateTask(taskIds[filePath], { status: "error", currentStep: "大模型返回解析失败" });
+                addLog(taskIds[filePath], "核心失败：批量 AI 解析返回了无法解析的格式", "error");
+                if (lastRawOutput) {
+                  addLog(taskIds[filePath], `模型原始返回（前200字符）: ${lastRawOutput.substring(0, 200)}`, "error");
+                } else {
+                  addLog(taskIds[filePath], "模型返回为空（可能是网络超时或 API 报错）", "error");
+                }
+              }
+              continue;
             }
 
             // 逐个文件入库与硬链接
             for (const filePath of chunk) {
-               const taskId = taskIds[filePath];
-               const filename = path.basename(filePath);
-               const taskState = taskManager.get(taskId);
-               const taskStartTime = taskState?.startTime || Date.now();
+              const taskId = taskIds[filePath];
+              const filename = path.basename(filePath);
+              const taskState = taskManager.get(taskId);
+              const taskStartTime = taskState?.startTime || Date.now();
 
-               try {
-                 const parsed = batchResults[filename];
-                 if (!parsed) {
-                    throw new Error("模型漏字：未能从 LLM 返回合包中找到属于该文件的推理对象。");
-                 }
+              try {
+                const parsed = batchResults[filename];
+                if (!parsed) {
+                  throw new Error("模型漏字：未能从 LLM 返回合包中找到属于该文件的推理对象。");
+                }
 
-                 addLog(taskId, `大语言模型返回原生 Payload: ${JSON.stringify(parsed)}`, "info");
-                 if (parsed.reasoning) {
-                   addLog(taskId, `💭 文件解析思维链: ${parsed.reasoning}`, "info");
-                 }
+                addLog(taskId, `大语言模型返回原生 Payload: ${JSON.stringify(parsed)}`, "info");
+                if (parsed.reasoning) {
+                  addLog(taskId, `💭 文件解析思维链: ${parsed.reasoning}`, "info");
+                }
 
-                 if (parsed.isMainEpisode === false) {
-                    addLog(taskId, `LLM 已将该文件判定为非正片，系统自动跳过`, "warn");
-                    await prisma.processLog.create({
-                       data: {
-                         originalName: filename,
-                         originalPath: filePath,
-                         targetPath: "IGNORED (已跳过非正片)",
-                         tmdbId: 0,
-                         tmdbName: "不适用",
-                         status: "SUCCESS"
-                       }
-                    });
-                    updateTask(taskId, { status: "success", currentStep: "过滤机制跳过", progress: 100, endTime: Date.now() });
-                    continue;
-                 }
+                if (parsed.isMainEpisode === false) {
+                  addLog(taskId, `LLM 已将该文件判定为非正片，系统自动跳过`, "warn");
+                  await prisma.processLog.create({
+                    data: {
+                      originalName: filename,
+                      originalPath: filePath,
+                      targetPath: "IGNORED (已跳过非正片)",
+                      tmdbId: 0,
+                      tmdbName: "不适用",
+                      status: "SUCCESS"
+                    }
+                  });
+                  updateTask(taskId, { status: "success", currentStep: "过滤机制跳过", progress: 100, endTime: Date.now() });
+                  continue;
+                }
 
-                 addLog(taskId, `LLM 推理剥离成功：[剧名="${parsed.originalName}", 第${parsed.season}季-第${parsed.episode}集, 类型=${parsed.category}]`, "success");
+                addLog(taskId, `LLM 推理剥离成功：[剧名="${parsed.originalName}", 第${parsed.season}季-第${parsed.episode}集, 类型=${parsed.category}]`, "success");
 
-                 const result = await processFile(
-                   filePath,
-                   {
-                     targetDir: config.targetDir,
-                     targetDirAnime: config.targetDirAnime || undefined,
-                     targetDirTV: config.targetDirTV || undefined,
-                     targetDirMovie: config.targetDirMovie || undefined,
-                   },
-                   parsed,
-                   config.tmdbKey,
-                   taskId,
-                   tmdbCache,
-                   { apiKey: config.openaiKey, baseURL: config.openaiBaseURL, model: config.openaiModel }
-                 );
+                const result = await processFile(
+                  filePath,
+                  {
+                    targetDir: config.targetDir,
+                    targetDirAnime: config.targetDirAnime || undefined,
+                    targetDirTV: config.targetDirTV || undefined,
+                    targetDirMovie: config.targetDirMovie || undefined,
+                  },
+                  parsed,
+                  config.tmdbKey,
+                  taskId,
+                  tmdbCache,
+                  { apiKey: config.openaiKey, baseURL: config.openaiBaseURL, model: config.openaiModel }
+                );
 
-                 await prisma.processLog.create({
-                   data: {
-                     originalName: filename,
-                     originalPath: filePath,
-                     targetPath: result.targetPath,
-                     tmdbId: result.tmdbResult.id,
-                     tmdbName: result.tmdbResult.name,
-                     status: "SUCCESS"
-                   }
-                 });
+                await prisma.processLog.create({
+                  data: {
+                    originalName: filename,
+                    originalPath: filePath,
+                    targetPath: result.targetPath,
+                    tmdbId: result.tmdbResult.id,
+                    tmdbName: result.tmdbResult.name,
+                    status: "SUCCESS"
+                  }
+                });
 
-                 updateTask(taskId, { status: "success", currentStep: "数据库挂载落库", progress: 100, endTime: Date.now() });
-                 addLog(taskId, `节点流转完结并入库防重 (总耗时 ${((Date.now() - taskStartTime)/1000).toFixed(1)}s)`, "success");
-               } catch (err: any) {
-                 await prisma.processLog.create({
-                   data: {
-                     originalName: filename,
-                     originalPath: filePath,
-                     status: "FAILED",
-                     errorMessage: err.message
-                   }
-                 });
-                 updateTask(taskId, { status: "error", currentStep: "触发容错异常迫降", endTime: Date.now() });
-                 addLog(taskId, `防御机制迫降: ${err.message}`, "error");
-               }
+                updateTask(taskId, { status: "success", currentStep: "数据库挂载落库", progress: 100, endTime: Date.now() });
+                addLog(taskId, `节点流转完结并入库防重 (总耗时 ${((Date.now() - taskStartTime) / 1000).toFixed(1)}s)`, "success");
+              } catch (err: any) {
+                await prisma.processLog.create({
+                  data: {
+                    originalName: filename,
+                    originalPath: filePath,
+                    status: "FAILED",
+                    errorMessage: err.message
+                  }
+                });
+                updateTask(taskId, { status: "error", currentStep: "触发容错异常迫降", endTime: Date.now() });
+                addLog(taskId, `防御机制迫降: ${err.message}`, "error");
+              }
             }
           }
         }
