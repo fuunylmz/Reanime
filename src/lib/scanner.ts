@@ -74,6 +74,12 @@ export async function processFile(
     addLog(taskId, `命中本地 TMDB 同名热缓存，直接复用翻译结果："${tmdbResult.name}"`, "info");
   }
 
+  // ====== TMDB 二次校验：用 TMDB 的 media_type 纠正 LLM 可能的分类错误 ======
+  if (tmdbResult.media_type === "movie" && parsed.category !== "movie") {
+    addLog(taskId, `⚠️ TMDB 交叉验证发现分类偏差：LLM 判定为 "${parsed.category}"，但 TMDB 确认此作品实际为「电影/剧场版」，已自动纠正为 movie`, "warn");
+    parsed.category = "movie";
+  }
+
   updateTask(taskId, { currentStep: "构建挂载节点", progress: 70 });
 
   // 2. Construct Emby-friendly Path
